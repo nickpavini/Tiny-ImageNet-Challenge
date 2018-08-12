@@ -114,7 +114,7 @@ def getTestData(dir):
 
     return photos, filenames
 
-# Parameters: /path/to/photos/ && filename to be saved
+# Parameters: /path/to/data/ && filename to be saved
 def dirToH5(dir, filename):
     assert (os.path.isdir(dir)), 'Not an existing directory.' # assert the directory exists
     h5 = h5py.File(os.path.join(dir, filename+'.h5'), 'w')
