@@ -32,13 +32,16 @@ def grayToRgb(photo):
     return np.dstack((newPhoto, photo)) # 64 x 64 x 3, where r=g=b... gray
 
 # display grid of dimensions rows x cols with rows*cols photos
-def plot_images(rows, cols, images, descs, mode):
-    assert (len(images) == rows*cols and len(images) == len(descs)), ('Not equal slots to provided images.', 'len of images:', len(images), 'rows*cols:', rows*cols)
+def plot_images(rows, cols, images, mode, descs=None):
+    assert (len(images) == rows*cols), ('Not equal slots to provided images.', 'len of images:', len(images), 'rows*cols:', rows*cols)
+    if (descs is not None):
+        assert (len(images) == len(descs)), ('Not equal number of perdictions to images.', 'len of images:', len(images), 'len of descriptions:', len(descs))
     fig=plt.figure(figsize=(14, 14)) # set overall grid window size
     for i in range(1, cols*rows +1):
         fig.add_subplot(rows, cols, i) # add a subplot to a rows x cols grid at position i
         plt.imshow(images[i-1]) # put image in that plot
-        plt.title(descs[i-1]) # give that plot a title
+        if (descs is not None): # if descriptions are provided
+            plt.title(descs[i-1]) # give that plot a title
     plt.suptitle(mode) # set main title to train, validate, or test
     # plt.show() # display entire plot until the window is closed
     plt.waitforbuttonpress() # display entire plot until a button press
