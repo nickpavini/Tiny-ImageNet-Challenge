@@ -18,7 +18,7 @@ import os # directory and file path management
 import h5py # for handling hdf5 files
 import matplotlib.image as mpimg # for reading images as numpy arrays
 import numpy as np # array management
-import label, image, constants # Encode labels, image formatting and normalization, constant information about the provided dataset
+import imgnet_label, imgnet_image, imgnet_constants # Encode labels, image formatting and normalization, constant information about the provided dataset
 import random # shuffle data
 import sys # command arguments for unit tests
 
@@ -39,17 +39,17 @@ def getTrainData(dir):
     train_dirs = next(os.walk(train_dir))[1] #list of directories in the train/ directory... should be only folders representing classification codes
 
     # Allocate arrays to be returned
-    photos = np.zeros((constants.TRAIN_PICS, constants.SHAPE[0], constants.SHAPE[1], constants.SHAPE[2]), dtype=np.uint8)
-    labels = np.zeros((constants.TRAIN_PICS, constants.CLASSIFICATIONS), dtype=np.uint8)
-    filenames = np.empty((constants.TRAIN_PICS), dtype='S25') # string of 25 characters for the filename
+    photos = np.zeros((imgnet_constants.TRAIN_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.uint8)
+    labels = np.zeros((imgnet_constants.TRAIN_PICS, imgnet_constants.CLASSIFICATIONS), dtype=np.uint8)
+    filenames = np.empty((imgnet_constants.TRAIN_PICS), dtype='S25') # string of 25 characters for the filename
 
     i = 0 # count for which photo we are on [0,CLASSIFICATIONS)
     for id in train_dirs: #go thru each training directory... dir/train/
         id_dir = os.path.join(os.path.join(train_dir, id), 'images') # /dir/train/id/images
         for img_name in os.listdir(id_dir): # get all photo names in this id directory
             img = mpimg.imread(os.path.join(id_dir, img_name)) # /dir/train/id/images/image_name.JPEG
-            photos[i] = img if img.shape == constants.SHAPE else image.grayToRgb(img) # get photo as array
-            labels[i] = label.onehot_encode(dir, id) # onehot encoded array
+            photos[i] = img if img.shape == imgnet_constants.SHAPE else imgnet_image.grayToRgb(img) # get photo as array
+            labels[i] = imgnet_label.onehot_encode(dir, id) # onehot encoded array
             filenames[i] = img_name
             i += 1
 
@@ -61,26 +61,26 @@ def getValData(dir):
     assert (os.path.isdir(val_dir)), 'Not an existing directory.' # assert the directory exists
 
     # Allocate arrays to be returned
-    photos = np.zeros((constants.VAL_PICS, constants.SHAPE[0], constants.SHAPE[1], constants.SHAPE[2]), dtype=np.uint8)
-    labels = np.zeros((constants.VAL_PICS, constants.CLASSIFICATIONS), dtype=np.uint8)
-    filenames = np.empty((constants.VAL_PICS), dtype='S25') # bytes string array of 25 characters for the filename
+    photos = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.uint8)
+    labels = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.CLASSIFICATIONS), dtype=np.uint8)
+    filenames = np.empty((imgnet_constants.VAL_PICS), dtype='S25') # bytes string array of 25 characters for the filename
 
     filenames[:] = os.listdir(os.path.join(val_dir,'images'))[:] # get filenames of photos, dir/val/images
 
     for i in range(len(filenames)): # go thru all images and retrieve their matrices and labels
         #get validation photos
         img = mpimg.imread(os.path.join(os.path.join(val_dir, 'images'), filenames[i].decode("utf-8"))) # /dir/val/imgages/filenames
-        photos[i] = img if img.shape == constants.SHAPE else image.grayToRgb(img) # get photo as array
+        photos[i] = img if img.shape == imgnet_constants.SHAPE else imgnet_image.grayToRgb(img) # get photo as array
 
         # get validation photo labels
         val_annotations = open(os.path.join(val_dir, 'val_annotations.txt'))
         j=0 # only a counter used as a flag for if no matching label was found
         for line in val_annotations: # find photo name in file
             if line.split()[0].lower() == filenames[i].decode("utf-8").lower(): # return onehot encoded label if we find matching name
-                labels[i] = label.onehot_encode(dir, line.split()[1])
+                labels[i] = imgnet_label.onehot_encode(dir, line.split()[1])
                 break
             j+=1 # didnt find so increment
-        assert (j != constants.VAL_PICS), 'Error: Could not find a matching label for this photo.' # problem if photo was not labeled
+        assert (j != imgnet_constants.VAL_PICS), 'Error: Could not find a matching label for this photo.' # problem if photo was not labeled
     return photos, labels, filenames
 
 # Parse directory returns photos, onehot arrays for labels and filenames related to testing data
@@ -89,14 +89,14 @@ def getTestData(dir):
     assert (os.path.isdir(test_dir)), 'Not an existing directory.' # assert the directory exists
 
     # Allocate arrays to be returned
-    photos = np.zeros((constants.VAL_PICS, constants.SHAPE[0], constants.SHAPE[1], constants.SHAPE[2]), dtype=np.uint8)
-    filenames = np.empty((constants.VAL_PICS), dtype='S25') # bytes string array of 25 characters for the filename
+    photos = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.uint8)
+    filenames = np.empty((imgnet_constants.VAL_PICS), dtype='S25') # bytes string array of 25 characters for the filename
 
     filenames[:] = os.listdir(os.path.join(test_dir,'images'))[:] # get filenames of photos, dir/test/images... wont work if amount of files doesnt match # of test pics
 
     for i in range(len(filenames)): # [0, len(filenames))
         img = mpimg.imread(os.path.join(os.path.join(test_dir, 'images'), filenames[i].decode("utf-8")))
-        photos[i] = img if img.shape == constants.SHAPE else image.grayToRgb(img) # get photo as array
+        photos[i] = img if img.shape == imgnet_constants.SHAPE else imgnet_image.grayToRgb(img) # get photo as array
 
     return photos, filenames
 
