@@ -8,10 +8,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg # for reading images
 
+# takes an image with rgb range [0.0, 1.0] and returns with range [0,255]
+def unNormalizeImage(photo):
+    for row in photo:
+        for col in row:
+            col[0] *= 255.0
+            col[1] *= 255.0
+            col[2] *= 255.0
+    return photo
 
-# Takes an image and converts 0-255 range to 0-1
+# Takes an image and converts 0-255 range to 0-1... image must be of float type
 def normalizeImage(photo):
-    None
+    for row in photo:
+        for col in row:
+            col[0] /= 255.0
+            col[1] /= 255.0
+            col[2] /= 255.0
+    return photo
 
 # Takes a grey scale image (n,n,1) and converts to (n,n,3)
 def grayToRgb(photo):

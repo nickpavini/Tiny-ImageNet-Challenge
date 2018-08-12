@@ -21,16 +21,27 @@ import numpy as np # array management
 import imgnet_label, imgnet_image, imgnet_constants # Encode labels, image formatting and normalization, constant information about the provided dataset
 import random # shuffle data
 import sys # command arguments for unit tests
+from tqdm import tqdm
 
 # shuffle 2 or 3 numpy arrays in parallel
 def unsisonShuffle(a, b, c = None):
-    p = np.random.permutation(len(a))
+    p = np.random.permutation(len(a)) # create permutation
+
+    # swap ith variable with p[i]th permutation
     if c is None:
         assert (len(a) == len(b)), (len(a), len(b))
-        return a[p], b[p]
+        for i in tqdm(range(len(a)), desc='Shuffling data in unison...'):
+            temp = [a[i], b[i]]
+            a[i], b[i] = a[p[i]], b[p[i]]
+            a[p[i]], b[p[i]] = temp[0], temp[1]
+        return a, b
     else:
         assert (len(a) == len(b) and len(a) == len(c)), (len(a), len(b), len(c))
-        return a[p], b[p], c[p]
+        for i in tqdm(range(len(a)), desc='Shuffling data in unison...'):
+            temp = [a[i], b[i], c[i]] #
+            a[i], b[i], c[i] = a[p[i]], b[p[i]], c[p[i]]
+            a[p[i]], b[p[i]], c[p[i]] = temp[0], temp[1], temp[2]
+        return a, b, c
 
 # Parse directory returns photos, onehot arrays for labels and filenames related to training data
 def getTrainData(dir):
@@ -39,16 +50,17 @@ def getTrainData(dir):
     train_dirs = next(os.walk(train_dir))[1] #list of directories in the train/ directory... should be only folders representing classification codes
 
     # Allocate arrays to be returned
-    photos = np.zeros((imgnet_constants.TRAIN_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.uint8)
+    photos = np.zeros((imgnet_constants.TRAIN_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.float32)
     labels = np.zeros((imgnet_constants.TRAIN_PICS, imgnet_constants.CLASSIFICATIONS), dtype=np.uint8)
     filenames = np.empty((imgnet_constants.TRAIN_PICS), dtype='S25') # string of 25 characters for the filename
 
     i = 0 # count for which photo we are on [0,CLASSIFICATIONS)
-    for id in train_dirs: #go thru each training directory... dir/train/
+    for id in tqdm(train_dirs, desc='Parsing training data...'): #go thru each training directory... dir/train/
         id_dir = os.path.join(os.path.join(train_dir, id), 'images') # /dir/train/id/images
         for img_name in os.listdir(id_dir): # get all photo names in this id directory
             img = mpimg.imread(os.path.join(id_dir, img_name)) # /dir/train/id/images/image_name.JPEG
             photos[i] = img if img.shape == imgnet_constants.SHAPE else imgnet_image.grayToRgb(img) # get photo as array
+            photos[i] = imgnet_image.normalizeImage(photos[i])
             labels[i] = imgnet_label.onehot_encode(dir, id) # onehot encoded array
             filenames[i] = img_name
             i += 1
@@ -61,16 +73,17 @@ def getValData(dir):
     assert (os.path.isdir(val_dir)), 'Not an existing directory.' # assert the directory exists
 
     # Allocate arrays to be returned
-    photos = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.uint8)
+    photos = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.float32)
     labels = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.CLASSIFICATIONS), dtype=np.uint8)
     filenames = np.empty((imgnet_constants.VAL_PICS), dtype='S25') # bytes string array of 25 characters for the filename
 
     filenames[:] = os.listdir(os.path.join(val_dir,'images'))[:] # get filenames of photos, dir/val/images
 
-    for i in range(len(filenames)): # go thru all images and retrieve their matrices and labels
+    for i in tqdm(range(len(filenames)), desc='Parsing validation data...'): # go thru all images and retrieve their matrices and labels
         #get validation photos
         img = mpimg.imread(os.path.join(os.path.join(val_dir, 'images'), filenames[i].decode("utf-8"))) # /dir/val/imgages/filenames
         photos[i] = img if img.shape == imgnet_constants.SHAPE else imgnet_image.grayToRgb(img) # get photo as array
+        photos[i] = imgnet_image.normalizeImage(photos[i])
 
         # get validation photo labels
         val_annotations = open(os.path.join(val_dir, 'val_annotations.txt'))
@@ -89,14 +102,15 @@ def getTestData(dir):
     assert (os.path.isdir(test_dir)), 'Not an existing directory.' # assert the directory exists
 
     # Allocate arrays to be returned
-    photos = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.uint8)
+    photos = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.float32)
     filenames = np.empty((imgnet_constants.VAL_PICS), dtype='S25') # bytes string array of 25 characters for the filename
 
     filenames[:] = os.listdir(os.path.join(test_dir,'images'))[:] # get filenames of photos, dir/test/images... wont work if amount of files doesnt match # of test pics
 
-    for i in range(len(filenames)): # [0, len(filenames))
+    for i in tqdm(range(len(filenames)), desc='Parsing test data...'): # [0, len(filenames))
         img = mpimg.imread(os.path.join(os.path.join(test_dir, 'images'), filenames[i].decode("utf-8")))
         photos[i] = img if img.shape == imgnet_constants.SHAPE else imgnet_image.grayToRgb(img) # get photo as array
+        photos[i] = imgnet_image.normalizeImage(photos[i])
 
     return photos, filenames
 
@@ -106,35 +120,32 @@ def dirToH5(dir, filename):
     h5 = h5py.File(os.path.join(dir, filename+'.h5'), 'w')
 
     # Populate hdf5 file as specified in README.md with training data
-    print('Parsing training data, may take a few minutes...')
     photos, labels, filenames = getTrainData(dir)
-    print('Done','\nShuffling training data...')
+    print('Done')
     photos, labels, filenames = unsisonShuffle(photos, labels, filenames) # shuffle data... may be RAM heavy
     print('Done', '\nSaving training data to ' + os.path.join(dir, filename+'.h5') + '...')
-    h5.create_dataset('train_photos', data=photos)
-    h5.create_dataset('train_labels', data=labels)
-    h5.create_dataset('train_filenames', data=filenames)
+    h5.create_dataset('train_photos', data=photos, compression='lzf')
+    h5.create_dataset('train_labels', data=labels, compression='lzf')
+    h5.create_dataset('train_filenames', data=filenames, compression='lzf')
     print('Done')
 
     # Populate hdf5 file as specified in README.md with validation data
-    print('\nParsing validation data...')
     photos, labels, filenames = getValData(dir)
-    print('Done', '\nShuffling Validation data')
+    print('Done')
     photos, labels, filenames = unsisonShuffle(photos, labels, filenames) # shuffle data... may be RAM heavy
     print('Done', '\nSaving validation data to ' + os.path.join(dir, filename+'.h5') + '...')
-    h5.create_dataset('val_photos', data=photos)
-    h5.create_dataset('val_labels', data=labels)
-    h5.create_dataset('val_filenames', data=filenames)
+    h5.create_dataset('val_photos', data=photos, compression='lzf')
+    h5.create_dataset('val_labels', data=labels, compression='lzf')
+    h5.create_dataset('val_filenames', data=filenames, compression='lzf')
     print('Done')
 
-    # Populate hdf5 file as specified in README.md with testing data
-    print('\nParsing testing data...')
+    # Populate hdf5 file as specified in README.md with testing data)
     photos, filenames = getTestData(dir)
-    print('Done', '\nShuffling testing data')
+    print('Done')
     photos, filenames = unsisonShuffle(photos, filenames) # shuffle data... may be RAM heavy
     print('Done', '\nSaving testing data to ' + os.path.join(dir, filename+'.h5') + '...')
-    h5.create_dataset('test_photos', data=photos)
-    h5.create_dataset('test_filenames', data=filenames)
+    h5.create_dataset('test_photos', data=photos, compression='lzf')
+    h5.create_dataset('test_filenames', data=filenames, compression='lzf')
     print('Done')
 
     h5.close() # Close the file and we are done
@@ -181,8 +192,8 @@ if __name__ == '__main__':
     print('\nTest shuffling multiple arrays in unison') # assert that the arrays were actually shuffled in unison
     print('Passed')
 
-    print('Test that training onehot labels correspond with their ids.') # assert train labels correspond to their ids
+    print('\nTest that training onehot labels correspond with their ids.') # assert train labels correspond to their ids
     print('Passed')
 
-    print('Test that Validation onehot labels correspond with their ids') # assert val labels correspond to their ids
+    print('\nTest that Validation onehot labels correspond with their ids') # assert val labels correspond to their ids
     print('Passed')
