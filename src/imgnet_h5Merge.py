@@ -30,14 +30,14 @@ def unsisonShuffle(a, b, c = None):
     # swap ith variable with p[i]th permutation
     if c is None:
         assert (len(a) == len(b)), (len(a), len(b))
-        for i in tqdm(range(len(a)), desc='Shuffling data in unison...'):
+        for i in tqdm(range(len(a)), desc='Shuffling in unison'):
             temp = [a[i], b[i]]
             a[i], b[i] = a[p[i]], b[p[i]]
             a[p[i]], b[p[i]] = temp[0], temp[1]
         return a, b
     else:
         assert (len(a) == len(b) and len(a) == len(c)), (len(a), len(b), len(c))
-        for i in tqdm(range(len(a)), desc='Shuffling data in unison...'):
+        for i in tqdm(range(len(a)), desc='Shuffling in unison'):
             temp = [a[i], b[i], c[i]] #
             a[i], b[i], c[i] = a[p[i]], b[p[i]], c[p[i]]
             a[p[i]], b[p[i]], c[p[i]] = temp[0], temp[1], temp[2]
@@ -55,7 +55,7 @@ def getTrainData(dir):
     filenames = np.empty((imgnet_constants.TRAIN_PICS), dtype='S25') # string of 25 characters for the filename
 
     i = 0 # count for which photo we are on [0,CLASSIFICATIONS)
-    for id in tqdm(train_dirs, desc='Parsing training data...'): #go thru each training directory... dir/train/
+    for id in tqdm(train_dirs, desc='Parsing training data'): #go thru each training directory... dir/train/
         id_dir = os.path.join(os.path.join(train_dir, id), 'images') # /dir/train/id/images
         for img_name in os.listdir(id_dir): # get all photo names in this id directory
             img = mpimg.imread(os.path.join(id_dir, img_name)) # /dir/train/id/images/image_name.JPEG
@@ -79,7 +79,7 @@ def getValData(dir):
 
     filenames[:] = os.listdir(os.path.join(val_dir,'images'))[:] # get filenames of photos, dir/val/images
 
-    for i in tqdm(range(len(filenames)), desc='Parsing validation data...'): # go thru all images and retrieve their matrices and labels
+    for i in tqdm(range(len(filenames)), desc='Parsing validation data'): # go thru all images and retrieve their matrices and labels
         #get validation photos
         img = mpimg.imread(os.path.join(os.path.join(val_dir, 'images'), filenames[i].decode("utf-8"))) # /dir/val/imgages/filenames
         photos[i] = img if img.shape == imgnet_constants.SHAPE else imgnet_image.grayToRgb(img) # get photo as array
@@ -107,7 +107,7 @@ def getTestData(dir):
 
     filenames[:] = os.listdir(os.path.join(test_dir,'images'))[:] # get filenames of photos, dir/test/images... wont work if amount of files doesnt match # of test pics
 
-    for i in tqdm(range(len(filenames)), desc='Parsing test data...'): # [0, len(filenames))
+    for i in tqdm(range(len(filenames)), desc='Parsing test data'): # [0, len(filenames))
         img = mpimg.imread(os.path.join(os.path.join(test_dir, 'images'), filenames[i].decode("utf-8")))
         photos[i] = img if img.shape == imgnet_constants.SHAPE else imgnet_image.grayToRgb(img) # get photo as array
         photos[i] = imgnet_image.normalizeImage(photos[i])
@@ -121,29 +121,28 @@ def dirToH5(dir, filename):
 
     # Populate hdf5 file as specified in README.md with training data
     photos, labels, filenames = getTrainData(dir)
-    print('Done')
     photos, labels, filenames = unsisonShuffle(photos, labels, filenames) # shuffle data... may be RAM heavy
-    print('Done', '\nSaving training data to ' + os.path.join(dir, filename+'.h5') + '...')
+    print('Saving training data to ' + os.path.join(dir, filename+'.h5') + '...')
     h5.create_dataset('train_photos', data=photos, compression='lzf')
     h5.create_dataset('train_labels', data=labels, compression='lzf')
     h5.create_dataset('train_filenames', data=filenames, compression='lzf')
     print('Done')
 
     # Populate hdf5 file as specified in README.md with validation data
+    print()
     photos, labels, filenames = getValData(dir)
-    print('Done')
     photos, labels, filenames = unsisonShuffle(photos, labels, filenames) # shuffle data... may be RAM heavy
-    print('Done', '\nSaving validation data to ' + os.path.join(dir, filename+'.h5') + '...')
+    print('Saving validation data to ' + os.path.join(dir, filename+'.h5') + '...')
     h5.create_dataset('val_photos', data=photos, compression='lzf')
     h5.create_dataset('val_labels', data=labels, compression='lzf')
     h5.create_dataset('val_filenames', data=filenames, compression='lzf')
     print('Done')
 
     # Populate hdf5 file as specified in README.md with testing data)
+    print()
     photos, filenames = getTestData(dir)
-    print('Done')
     photos, filenames = unsisonShuffle(photos, filenames) # shuffle data... may be RAM heavy
-    print('Done', '\nSaving testing data to ' + os.path.join(dir, filename+'.h5') + '...')
+    print('Saving testing data to ' + os.path.join(dir, filename+'.h5') + '...')
     h5.create_dataset('test_photos', data=photos, compression='lzf')
     h5.create_dataset('test_filenames', data=filenames, compression='lzf')
     print('Done')
