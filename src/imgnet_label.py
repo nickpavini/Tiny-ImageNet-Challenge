@@ -9,9 +9,9 @@ import os
 # Parameters: Dir of Challenge data and photo label (n12345678) as specified in README.md..
 # Converts a label to a onehot encoded array based on position in wnids.txt file
 def onehot_encode(dir, label):
-    onehot_label = np.zeros((imgnet_constants.CLASSIFICATIONS), dtype=np.uint8)
+    onehot_label = np.zeros((imgnet_constants.CLASSIFICATIONS), dtype=np.float32)
     ids = [f.split()[0].lower() for f in open(os.path.join(dir, 'wnids.txt'), 'r').readlines()] # get possible id classifications in order
-    onehot_label[ids.index(label.lower())] = 1 # set the index where we found the label as a 1
+    onehot_label[ids.index(label.lower())] = 1.0 # set the index where we found the label as a 1.0 for 100% match
     return onehot_label
 
 # Parameters: Dir of Challenge data, and onehot encoded array of label

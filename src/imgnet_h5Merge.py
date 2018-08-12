@@ -51,7 +51,7 @@ def getTrainData(dir):
 
     # Allocate arrays to be returned
     photos = np.zeros((imgnet_constants.TRAIN_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.float32)
-    labels = np.zeros((imgnet_constants.TRAIN_PICS, imgnet_constants.CLASSIFICATIONS), dtype=np.uint8)
+    labels = np.zeros((imgnet_constants.TRAIN_PICS, imgnet_constants.CLASSIFICATIONS), dtype=np.float32)
     filenames = np.empty((imgnet_constants.TRAIN_PICS), dtype='S25') # string of 25 characters for the filename
 
     i = 0 # count for which photo we are on [0,CLASSIFICATIONS)
@@ -74,7 +74,7 @@ def getValData(dir):
 
     # Allocate arrays to be returned
     photos = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.SHAPE[0], imgnet_constants.SHAPE[1], imgnet_constants.SHAPE[2]), dtype=np.float32)
-    labels = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.CLASSIFICATIONS), dtype=np.uint8)
+    labels = np.zeros((imgnet_constants.VAL_PICS, imgnet_constants.CLASSIFICATIONS), dtype=np.float32)
     filenames = np.empty((imgnet_constants.VAL_PICS), dtype='S25') # bytes string array of 25 characters for the filename
 
     filenames[:] = os.listdir(os.path.join(val_dir,'images'))[:] # get filenames of photos, dir/val/images
