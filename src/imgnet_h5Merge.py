@@ -184,15 +184,31 @@ def dloadToH5(dir, filename):
 """
 
 if __name__ == '__main__':
+    dir = str(sys.argv[1])
+    filename = str(sys.argv[2])
+
     print('Test downloading and parsing directory to h5...')
-    dloadToH5(str(sys.argv[1]), str(sys.argv[2])) # runs dloadToH5 and dirToH5, if no errors are thrown then we ran successfully
+    dloadToH5(dir, filename) # runs dloadToH5 and dirToH5, if no errors are thrown then we ran successfully
     print('Passed')
 
-    print('\nTest shuffling multiple arrays in unison') # assert that the arrays were actually shuffled in unison
-    print('Passed')
+    # get handle on newly created file
+    dir = os.path.join(dir, 'tiny-imagenet-200') # dir/tiny-imagenet-200/
+    h5 = h5py.File(os.path.join(dir, filename) + '.h5', 'r') # dir/tiny-imagenet-200/filename.h5
 
-    print('\nTest that training onehot labels correspond with their ids.') # assert train labels correspond to their ids
-    print('Passed')
+    # assert all rgb values are in range [0, 1.0]
+    print('\nAssert all photos have been normalized.')
+    for photo in tqdm(h5['train_photos'], desc='Training Photos'):
+        for row in photo:
+            for col in row:
+                assert (col[0] <= 1.0 and col[1] <= 1.0 and col[2] <= 1.0), ('Image not normalized:', col)
 
-    print('\nTest that Validation onehot labels correspond with their ids') # assert val labels correspond to their ids
+    for photo in tqdm(h5['val_photos'], desc='Validation Photos'):
+        for row in photo:
+            for col in row:
+                assert (col[0] <= 1.0 and col[1] <= 1.0 and col[2] <= 1.0), ('Image not normalized:', col)
+
+    for photo in tqdm(h5['test_photos'], desc='Test Photos'):
+        for row in photo:
+            for col in row:
+                assert (col[0] <= 1.0 and col[1] <= 1.0 and col[2] <= 1.0), ('Image not normalized:', col)
     print('Passed')
