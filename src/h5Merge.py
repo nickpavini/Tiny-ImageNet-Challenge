@@ -74,13 +74,13 @@ def getValData(dir):
 
         # get validation photo labels
         val_annotations = open(os.path.join(val_dir, 'val_annotations.txt'))
-        i=0
+        j=0 # only a counter used as a flag for if no matching label was found
         for line in val_annotations: # find photo name in file
             if line.split()[0].lower() == filenames[i].decode("utf-8").lower(): # return onehot encoded label if we find matching name
                 labels[i] = label.onehot_encode(dir, line.split()[1])
                 break
-            i+=1
-        assert (i != constants.VAL_PICS), 'Error: Could not find a matching label for this photo.' # problem if photo was not labeled
+            j+=1 # didnt find so increment
+        assert (j != constants.VAL_PICS), 'Error: Could not find a matching label for this photo.' # problem if photo was not labeled
     return photos, labels, filenames
 
 # Parse directory returns photos, onehot arrays for labels and filenames related to testing data
