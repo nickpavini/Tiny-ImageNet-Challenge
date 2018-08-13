@@ -8,20 +8,19 @@ import imgnet_constants as consts
 import numpy as np # array management
 import math # for rounding steps up
 from tqdm import tqdm # for unit tests
+from imgnet_utils import unsisonShuffle
 
 class Dataset:
-    def __init__(self, hdf5_file, batch_size):
+    def __init__(self, hdf5_file, batch_size, chunk_size):
         # assertions
         assert (os.path.exists(hdf5_file)), ('Path to hdf5 file does not exist.') # make sure the provided hdf5_file exists
         assert (isinstance(batch_size, int) and batch_size > 0), ('Batch size must be a positve integer') # make sure batch_size is a pos integer
+        assert (isinstance(batch_size, int) and chunk_size > 0 and chunk_size <= consts.TRAIN_PICS and consts.TRAIN_PICS%chunk_size == 0), ('Chunk size out of range of total training images or does not divide evenly.')
 
         # assignments
         self.hdf5_file = h5py.File(hdf5_file, 'r') # handle to hdf5 file
         self.batch_size = batch_size
-
-        # get training indices
-        self.train_indices = list(range(consts.TRAIN_PICS)) # list of indices for shuffling data between epochs
-        np.random.shuffle(self.train_indices) # shuffle data to try and avoid learning biases
+        self.chunk_size = chunk_size
 
         # get steps per epoch for train/val/test sets
         self.train_steps = int(math.ceil(consts.TRAIN_PICS / batch_size))
@@ -33,31 +32,46 @@ class Dataset:
         self.val_photos_processed = 0
         self.test_photos_processed = 0
 
+        # setup chunking setttings
+        self.current_chunk = 0 # start on chunk 0
+        self.total_chunks = int(consts.TRAIN_PICS/chunk_size)
+        self.train_photos_loaded = False # start without loading training chunk
+
+
+    def load_train_photos(self, start, finish):
+        self.permutation = np.random.permutation(finish-start)
+        self.train_photos = self.hdf5_file['train_photos'][start:finish] # randomly shuffled copy
+        self.train_labels = self.hdf5_file['train_labels'][start:finish] # randomly shuffled copy
+        self.train_filenames= self.hdf5_file['train_filenames'][start:finish] # randomly shuffled copy
+        self.train_photos, self.train_labels, self.train_filenames = unsisonShuffle(self.train_photos, self.train_labels, self.train_filenames, self.permutation)
+
+
     # get next batch_size train images, labels and filenames... training data is always shuffled between epochs so we must take from shuffled indices
     # need to speed up while still randomizing data between epochs
     def next_train_batch(self):
         flag = False # flag for if we are taking the last of the photos to be processed
         batch_size = self.batch_size
 
-        # set batch_size to correct value based on number of photos left to process
-        if (consts.TRAIN_PICS - self.train_photos_processed) < batch_size:
-            flag = True
-            batch_size = consts.TRAIN_PICS % batch_size # find how many photos are left to process
+        if (self.train_photos_loaded == False): # if we have not loaded the a chunk, then load next chunk
+            self.load_train_photos(int(self.chunk_size*self.current_chunk), int(self.chunk_size*self.current_chunk + self.chunk_size)) # load next chunk_size images/labels/filenames
+            self.current_chunk += 1 # increment total chunks
+            if (self.current_chunk == self.total_chunks): # if we have done the total amount of chunks then reset
+                self.current_chunk = 0
+            self.train_photos_loaded = True # set training photos chunk to loaded
 
-        # Allocate arrays to be returned
-        photos = np.zeros((batch_size, consts.SHAPE[0], consts.SHAPE[1], consts.SHAPE[2]), dtype=np.float32)
-        labels = np.zeros((batch_size, consts.CLASSIFICATIONS), dtype=np.float32)
-        filenames = np.empty((batch_size), dtype='S25') # string of 25 characters for the filename
+        # set batch_size to correct value based on number of photos left to process
+        if (self.chunk_size - self.train_photos_processed) < batch_size:
+            flag = True
+            batch_size = self.chunk_size % batch_size # find how many photos are left to process
 
         # get photo labels and filenames
-        for i in range(self.train_photos_processed, self.train_photos_processed + batch_size):
-            photos[i - self.train_photos_processed] = self.hdf5_file['train_photos'][self.train_indices[i]] # get next batch_size photos
-            labels[i - self.train_photos_processed] = self.hdf5_file['train_labels'][self.train_indices[i]] # get next batch_size labels
-            filenames[i - self.train_photos_processed] = self.hdf5_file['train_filenames'][self.train_indices[i]] # get next batch_size filenames
+        photos = self.train_photos[self.train_photos_processed:int(self.train_photos_processed + batch_size)] # get next batch_size photos
+        labels = self.train_labels[self.train_photos_processed:int(self.train_photos_processed + batch_size)] # get next batch_size labels
+        filenames = self.train_filenames[self.train_photos_processed:int(self.train_photos_processed + batch_size)] # get next batch_size filenames
 
         if flag: # start from begginning and shuffle
             self.train_photos_processed = 0
-            np.random.shuffle(self.train_indices)
+            self.train_photos_loaded = False
         else:
             self.train_photos_processed += batch_size
 
@@ -112,7 +126,7 @@ class Dataset:
 """
 
 if __name__ == '__main__':
-    dataset = Dataset(str(sys.argv[1]), int(sys.argv[2]))
+    dataset = Dataset(str(sys.argv[1]), int(sys.argv[2]), consts.TRAIN_PICS/2)
 
     for i in tqdm(range(dataset.train_steps), desc='Train batches'):
         photos, labels, filenames = dataset.next_train_batch()
