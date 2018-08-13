@@ -93,7 +93,7 @@ class Dataset:
         labels = self.hdf5_file['val_labels'][self.val_photos_processed:self.val_photos_processed + batch_size] # get next batch_size labels
         filenames = self.hdf5_file['val_filenames'][self.val_photos_processed:self.val_photos_processed + batch_size] # get next batch_size filenames
 
-        if (flag or consts.VAL_PICS - (batch_size + self.val_photos_processed)):
+        if (flag or consts.VAL_PICS-(batch_size + self.val_photos_processed) == 0):
             self.val_photos_processed = 0
         else:
             self.val_photos_processed += batch_size
@@ -114,7 +114,7 @@ class Dataset:
         photos = self.hdf5_file['test_photos'][self.test_photos_processed:self.test_photos_processed + batch_size] # get next batch_size photos
         filenames = self.hdf5_file['test_filenames'][self.test_photos_processed:self.test_photos_processed + batch_size] # get next batch_size filenames
 
-        if (flag or consts.TEST_PICS - (batch_size + self.test_photos_processed)):
+        if (flag or consts.TEST_PICS-(batch_size+self.test_photos_processed) == 0):
             self.test_photos_processed = 0
         else:
             self.test_photos_processed += batch_size
