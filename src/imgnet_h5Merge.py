@@ -103,6 +103,7 @@ def dirToH5(dir, filename):
 
     # Populate hdf5 file as specified in README.md with training data
     photos, labels, filenames = getTrainData(dir)
+    print('Shuffling data in unison...')
     photos, labels, filenames = unsisonShuffle(photos, labels, filenames) # shuffle data... may be RAM heavy
     print('Saving training data to ' + os.path.join(dir, filename+'.h5') + '...')
     h5.create_dataset('train_photos', data=photos, compression='lzf')
@@ -113,6 +114,7 @@ def dirToH5(dir, filename):
     # Populate hdf5 file as specified in README.md with validation data
     print()
     photos, labels, filenames = getValData(dir)
+    print('Shuffling data in unison...')
     photos, labels, filenames = unsisonShuffle(photos, labels, filenames) # shuffle data... may be RAM heavy
     print('Saving validation data to ' + os.path.join(dir, filename+'.h5') + '...')
     h5.create_dataset('val_photos', data=photos, compression='lzf')
@@ -123,6 +125,7 @@ def dirToH5(dir, filename):
     # Populate hdf5 file as specified in README.md with testing data)
     print()
     photos, filenames = getTestData(dir)
+    print('Shuffling data in unison...')
     photos, filenames = unsisonShuffle(photos, filenames) # shuffle data... may be RAM heavy
     print('Saving testing data to ' + os.path.join(dir, filename+'.h5') + '...')
     h5.create_dataset('test_photos', data=photos, compression='lzf')
