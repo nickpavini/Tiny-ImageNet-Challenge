@@ -1,3 +1,6 @@
+import numpy as np
+from tqdm import tqdm
+
 # shuffle 2 or 3 numpy arrays in parallel
 def unsisonShuffle(a, b, c = None, p = None):
     if (p is None):
