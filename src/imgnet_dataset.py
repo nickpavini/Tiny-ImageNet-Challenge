@@ -2,6 +2,109 @@
     Class to that manages the Tiny ImageNet Challenge dataset from an hdf5
     formatted as specified in README.md.
 """
+import h5py, os # hdf5 handling, path management
+import sys # for unit test command arguments
+import imgnet_constants as consts
+import numpy as np # array management
+import math # for rounding steps up
+from tqdm import tqdm # for unit tests
+
+class Dataset:
+    def __init__(self, hdf5_file, batch_size):
+        # assertions
+        assert (os.path.exists(hdf5_file)), ('Path to hdf5 file does not exist.') # make sure the provided hdf5_file exists
+        assert (isinstance(batch_size, int) and batch_size > 0), ('Batch size must be a positve integer') # make sure batch_size is a pos integer
+
+        # assignments
+        self.hdf5_file = h5py.File(hdf5_file, 'r') # handle to hdf5 file
+        self.batch_size = batch_size
+
+        # get training indices
+        self.train_indices = list(range(consts.TRAIN_PICS)) # list of indices for shuffling data between epochs
+        np.random.shuffle(self.train_indices) # shuffle data to try and avoid learning biases
+
+        # get steps per epoch for train/val/test sets
+        self.train_steps = int(math.ceil(consts.TRAIN_PICS / batch_size))
+        self.val_steps = int(math.ceil(consts.VAL_PICS / batch_size))
+        self.test_steps = int(math.ceil(consts.TEST_PICS / batch_size))
+
+        # initialize variables to keep track of number of photos processed for each set
+        self.train_photos_processed = 0
+        self.val_photos_processed = 0
+        self.test_photos_processed = 0
+
+    # get next batch_size train images, labels and filenames... training data is always shuffled between epochs so we must take from shuffled indices
+    # need to speed up while still randomizing data between epochs
+    def next_train_batch(self):
+        flag = False # flag for if we are taking the last of the photos to be processed
+        batch_size = self.batch_size
+
+        # set batch_size to correct value based on number of photos left to process
+        if (consts.TRAIN_PICS - self.train_photos_processed) < batch_size:
+            flag = True
+            batch_size = consts.TRAIN_PICS % batch_size # find how many photos are left to process
+
+        # Allocate arrays to be returned
+        photos = np.zeros((batch_size, consts.SHAPE[0], consts.SHAPE[1], consts.SHAPE[2]), dtype=np.float32)
+        labels = np.zeros((batch_size, consts.CLASSIFICATIONS), dtype=np.float32)
+        filenames = np.empty((batch_size), dtype='S25') # string of 25 characters for the filename
+
+        # get photo labels and filenames
+        for i in range(self.train_photos_processed, self.train_photos_processed + batch_size):
+            photos[i - self.train_photos_processed] = self.hdf5_file['train_photos'][self.train_indices[i]] # get next batch_size photos
+            labels[i - self.train_photos_processed] = self.hdf5_file['train_labels'][self.train_indices[i]] # get next batch_size labels
+            filenames[i - self.train_photos_processed] = self.hdf5_file['train_filenames'][self.train_indices[i]] # get next batch_size filenames
+
+        if flag: # start from begginning and shuffle
+            self.train_photos_processed = 0
+            np.random.shuffle(self.train_indices)
+        else:
+            self.train_photos_processed += batch_size
+
+        return photos, labels, filenames
+
+    # get next batch_size val images, labels and filenames
+    def next_val_batch(self):
+        flag = False # flag for if we are taking the last of the photos to be processed
+        batch_size = self.batch_size
+
+        # set batch_size to correct value based on number of photos left to process
+        if (consts.VAL_PICS - self.val_photos_processed) < batch_size:
+            flag = True
+            batch_size = consts.VAL_PICS % batch_size # find how many photos are left to process
+
+        # get photo labels and filenames
+        photos = self.hdf5_file['val_photos'][self.val_photos_processed:self.val_photos_processed + batch_size] # get next batch_size photos
+        labels = self.hdf5_file['val_labels'][self.val_photos_processed:self.val_photos_processed + batch_size] # get next batch_size labels
+        filenames = self.hdf5_file['val_filenames'][self.val_photos_processed:self.val_photos_processed + batch_size] # get next batch_size filenames
+
+        if flag:
+            self.val_photos_processed = 0
+        else:
+            self.val_photos_processed += batch_size
+
+        return photos, labels, filenames
+
+    # get next batch_size train images and filenames
+    def next_test_batch(self):
+        flag = False # flag for if we are taking the last of the photos to be processed
+        batch_size = self.batch_size
+
+        # set batch_size to correct value based on number of photos left to process
+        if (consts.TEST_PICS - self.test_photos_processed) < batch_size:
+            flag = True
+            batch_size = consts.TEST_PICS % batch_size # find how many photos are left to process
+
+        # get photo labels and filenames
+        photos = self.hdf5_file['test_photos'][self.test_photos_processed:self.test_photos_processed + batch_size] # get next batch_size photos
+        filenames = self.hdf5_file['test_filenames'][self.test_photos_processed:self.test_photos_processed + batch_size] # get next batch_size filenames
+
+        if flag:
+            self.test_photos_processed = 0
+        else:
+            self.test_photos_processed += batch_size
+
+        return photos, filenames
 
 #-------------------------------------------------------------------------------
 """
@@ -9,4 +112,13 @@
 """
 
 if __name__ == '__main__':
-    None
+    dataset = Dataset(str(sys.argv[1]), int(sys.argv[2]))
+
+    for i in tqdm(range(dataset.train_steps), desc='Train batches'):
+        photos, labels, filenames = dataset.next_train_batch()
+
+    for i in tqdm(range(dataset.val_steps), desc='Validation batches'):
+        photos, labels, filenames = dataset.next_val_batch()
+
+    for i in tqdm(range(dataset.test_steps), desc='Test batches'):
+        photos, labels = dataset.next_test_batch()
