@@ -37,6 +37,11 @@ class Dataset:
         self.total_chunks = int(consts.TRAIN_PICS/chunk_size)
         self.train_photos_loaded = False # start without loading training chunk
 
+    def free(self):
+        del self.train_photos
+        del self.train_labels
+        del self.train_filenames
+
     # load chunk_size photos/labels/filenames into ram
     def load_train_photos(self, start, finish):
         assert (finish-start == self.chunk_size), 'Difference does not equal chunk_size.'
