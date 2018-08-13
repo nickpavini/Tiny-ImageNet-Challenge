@@ -1,6 +1,7 @@
 # shuffle 2 or 3 numpy arrays in parallel
-def unsisonShuffle(a, b, c = None):
-    p = np.random.permutation(len(a)) # create permutation
+def unsisonShuffle(a, b, c = None, p = None):
+    if (p is None):
+        p = np.random.permutation(len(a)) # create permutation
 
     # swap ith variable with p[i]th permutation
     if c is None:
