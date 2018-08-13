@@ -37,12 +37,13 @@ class Dataset:
         self.total_chunks = int(consts.TRAIN_PICS/chunk_size)
         self.train_photos_loaded = False # start without loading training chunk
 
-
+    # load chunk_size photos/labels/filenames into ram
     def load_train_photos(self, start, finish):
-        self.permutation = np.random.permutation(finish-start)
-        self.train_photos = self.hdf5_file['train_photos'][start:finish] # randomly shuffled copy
-        self.train_labels = self.hdf5_file['train_labels'][start:finish] # randomly shuffled copy
-        self.train_filenames= self.hdf5_file['train_filenames'][start:finish] # randomly shuffled copy
+        assert (finish-start == self.chunk_size), 'Difference does not equal chunk_size.'
+        self.permutation = np.random.permutation(finish-start) #create permutation
+        self.train_photos = self.hdf5_file['train_photos'][start:finish] # take chunk_size photos
+        self.train_labels = self.hdf5_file['train_labels'][start:finish] # take chunk_size photos
+        self.train_filenames= self.hdf5_file['train_filenames'][start:finish] # take chunk_size photos
         self.train_photos, self.train_labels, self.train_filenames = unsisonShuffle(self.train_photos, self.train_labels, self.train_filenames, self.permutation)
 
 
@@ -126,7 +127,7 @@ class Dataset:
 """
 
 if __name__ == '__main__':
-    dataset = Dataset(str(sys.argv[1]), int(sys.argv[2]), consts.TRAIN_PICS/2)
+    dataset = Dataset(str(sys.argv[1]), int(sys.argv[2]), consts.TRAIN_PICS/10)
 
     for i in tqdm(range(dataset.train_steps), desc='Train batches'):
         photos, labels, filenames = dataset.next_train_batch()
