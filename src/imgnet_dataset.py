@@ -70,7 +70,7 @@ class Dataset:
         labels = self.train_labels[self.train_photos_processed:int(self.train_photos_processed + batch_size)] # get next batch_size labels
         filenames = self.train_filenames[self.train_photos_processed:int(self.train_photos_processed + batch_size)] # get next batch_size filenames
 
-        if flag: # start from begginning and shuffle
+        if (flag or self.chunk_size-(batch_size+self.train_photos_processed) == 0): # start from begginning and shuffle
             self.train_photos_processed = 0
             self.train_photos_loaded = False
         else:
@@ -93,7 +93,7 @@ class Dataset:
         labels = self.hdf5_file['val_labels'][self.val_photos_processed:self.val_photos_processed + batch_size] # get next batch_size labels
         filenames = self.hdf5_file['val_filenames'][self.val_photos_processed:self.val_photos_processed + batch_size] # get next batch_size filenames
 
-        if flag:
+        if (flag or consts.VAL_PICS - (batch_size + self.val_photos_processed)):
             self.val_photos_processed = 0
         else:
             self.val_photos_processed += batch_size
@@ -114,7 +114,7 @@ class Dataset:
         photos = self.hdf5_file['test_photos'][self.test_photos_processed:self.test_photos_processed + batch_size] # get next batch_size photos
         filenames = self.hdf5_file['test_filenames'][self.test_photos_processed:self.test_photos_processed + batch_size] # get next batch_size filenames
 
-        if flag:
+        if (flag or consts.TEST_PICS - (batch_size + self.test_photos_processed)):
             self.test_photos_processed = 0
         else:
             self.test_photos_processed += batch_size
@@ -131,6 +131,7 @@ if __name__ == '__main__':
 
     for i in tqdm(range(dataset.train_steps), desc='Train batches'):
         photos, labels, filenames = dataset.next_train_batch()
+        print(len(photos))
 
     for i in tqdm(range(dataset.val_steps), desc='Validation batches'):
         photos, labels, filenames = dataset.next_val_batch()
