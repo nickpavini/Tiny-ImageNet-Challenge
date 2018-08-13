@@ -131,10 +131,12 @@ if __name__ == '__main__':
 
     for i in tqdm(range(dataset.train_steps), desc='Train batches'):
         photos, labels, filenames = dataset.next_train_batch()
-        print(len(photos))
+        assert (len(photos) != 0), 'Empty batch.'
 
     for i in tqdm(range(dataset.val_steps), desc='Validation batches'):
         photos, labels, filenames = dataset.next_val_batch()
+        assert (len(photos) != 0), 'Empty batch.'
 
     for i in tqdm(range(dataset.test_steps), desc='Test batches'):
         photos, labels = dataset.next_test_batch()
+        assert (len(photos) != 0), 'Empty batch.'
