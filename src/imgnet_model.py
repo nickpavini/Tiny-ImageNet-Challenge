@@ -54,7 +54,7 @@ class Model: # /path/to/hdf5_file, pos. int for getting train/val/test batches, 
         self.flattened = False #flag to know if we have already flattened the data once we come to fully connected layers
         self.network_built = False #flag to see if we have already built the network
         self.epochs = 0 #number of epochs we have currently completed successfully with increasing validation accuracy
-        self.stop_threshold = 0 #number of epochs that the network should check for an improvement in validation accuracy before
+        self.stop_threshold = 10 #number of epochs that the network should check for an improvement in validation accuracy before
 
 
     #2d conv with relu activation
