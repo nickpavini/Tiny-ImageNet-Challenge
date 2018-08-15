@@ -167,9 +167,8 @@ class Model: # /path/to/hdf5_file, pos. int for getting train/val/test batches, 
                 for step in tqdm(range(self.dataset.train_steps), desc = "Training Model " + str(self.id) + " - Epoch " + str(int(self.epochs+1))+" - Stop Count " + str(stop_count)):
                     train_photos, train_labels, train_filenames = self.dataset.next_train_batch() #get next training batch)
                     train_op, error, targets, outputs, acc = sess.run([self.network['optimizer'], self.network['loss'], self.network['labels'], self.network['logits'], self.network['accuracy']], feed_dict={self.network['inputs']: train_photos, self.network['labels']: train_labels}) #train and return predictions with target values
+                    total_train_accuracy += acc #get current accuracy on validation set and train set
 
-                #get current accuracy on validation set and train set
-                total_train_accuracy += acc
                 val_accuracy = self.validate(sess)
                 print('Training accuracy:', total_train_accuracy/self.dataset.train_steps)
                 print('Validation accuracy:', val_accuracy)
