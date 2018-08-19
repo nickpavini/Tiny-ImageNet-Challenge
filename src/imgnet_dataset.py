@@ -6,9 +6,10 @@ import h5py, os # hdf5 handling, path management
 import sys # for unit test command arguments
 import imgnet_constants as consts
 import numpy as np # array management
-import math # for rounding steps up
+import math, time # for rounding steps up, truly random permutations
 from tqdm import tqdm # for unit tests
 from imgnet_utils import unsisonShuffle
+import imgnet_image
 
 class Dataset:
     def __init__(self, hdf5_file, batch_size, chunk_size):
@@ -41,11 +42,17 @@ class Dataset:
         del self.train_photos
         del self.train_labels
         del self.train_filenames
+        self.train_photos_loaded = False
 
     # load chunk_size photos/labels/filenames into ram
     def load_train_photos(self, start, finish):
+        seed_length = 5 # length of random seed to be used in creating permutation
+        seed = str(int(time.time()*1000000)) # take time in microseconds
+        seed = int(seed[len(seed)-seed_length:]) # since we may end up taking many batches consecutively, lets make sure that the seed changes significantly each time and take last five digits of time in microseconds
+        while (seed < 10**(seed_length-1)): # while seed is not a seed_length digit number which can happen, multiply by 10 or add a 0
+            seed *= 10
         assert (finish-start == self.chunk_size), 'Difference does not equal chunk_size.'
-        self.permutation = np.random.permutation(finish-start) #create permutation
+        self.permutation = np.random.RandomState(seed=seed).permutation(finish-start)  #create permutation
         self.train_photos = self.hdf5_file['train_photos'][start:finish] # take chunk_size photos
         self.train_labels = self.hdf5_file['train_labels'][start:finish] # take chunk_size photos
         self.train_filenames= self.hdf5_file['train_filenames'][start:finish] # take chunk_size photos
@@ -136,6 +143,14 @@ if __name__ == '__main__':
 
     for i in tqdm(range(dataset.train_steps), desc='Train batches'):
         photos, labels, filenames = dataset.next_train_batch()
+        if i == 0:
+            imgnet_image.plot_images(1, 1, [photos[0]], 'train')
+        assert (len(photos) != 0), 'Empty batch.'
+
+    for i in tqdm(range(dataset.train_steps), desc='Train batches'):
+        photos, labels, filenames = dataset.next_train_batch()
+        if i == 0:
+            imgnet_image.plot_images(1, 1, [photos[0]], 'train')
         assert (len(photos) != 0), 'Empty batch.'
 
     for i in tqdm(range(dataset.val_steps), desc='Validation batches'):
